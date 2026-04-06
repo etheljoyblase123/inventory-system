@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | Premium Admin Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Analytics</h1>
+</div>
+<div class="top-actions">
+    <div class="date-range-picker glass-item">
+         <i data-lucide="calendar"></i>
+         <span>Oct 1, 2024 - Oct 26, 2024</span>
+         <i data-lucide="chevron-down"></i>
+    </div>
+    <button class="btn-filter glass"><i data-lucide="filter"></i> Filter</button>
+    <button class="btn-export green-btn"><i data-lucide="download"></i> Export Data</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-grid">
+    <!-- Top Metrics Row -->
+    <div class="metrics-row">
+        <!-- Total Active Users -->
+        <div class="metric-card glass">
+            <div class="metric-info">
+                <span class="metric-label">TOTAL ACTIVE USERS</span>
+                <div class="metric-value">1,245</div>
+            </div>
+            <div class="metric-chart" id="active-users-metric-chart"></div>
+        </div>
+        
+        <!-- Peak Server Load -->
+        <div class="metric-card glass">
+            <div class="metric-info">
+                <span class="metric-label">PEAK SERVER LOAD</span>
+                <div class="metric-value">78%</div>
+            </div>
+            <div class="metric-chart" id="peak-load-metric-chart"></div>
+        </div>
+        
+        <!-- Average Response Time -->
+        <div class="metric-card glass">
+            <div class="metric-info">
+                <span class="metric-label">AVERAGE RESPONSE TIME</span>
+                <div class="metric-value">120ms</div>
+            </div>
+            <div class="metric-chart" id="resp-time-metric-chart"></div>
+        </div>
+    </div>
+
+    <!-- Main Analytics Section -->
+    <div class="analytics-charts-row">
+        <!-- User Growth Last 30 Days -->
+        <div class="chart-container-analytics glass">
+            <div class="chart-header">
+                <h2>User Growth (Last 30 Days)</h2>
+                <button class="btn-filter glass-item">Filter <i data-lucide="chevron-down"></i></button>
+            </div>
+            <div id="user-growth-long-chart"></div>
+        </div>
+        
+        <!-- Resource Usage by Service -->
+        <div class="chart-container-analytics glass">
+            <div class="chart-header">
+                <h2>Resource Usage by Service</h2>
+                <div class="chart-legend">
+                    <span class="legend-item"><div class="dot cpu"></div> CPU</span>
+                    <span class="legend-item"><div class="dot memory"></div> Memory</span>
+                    <span class="legend-item"><div class="dot storage"></div> Storage</span>
+                </div>
+            </div>
+            <div id="resource-usage-chart"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+         initAnalyticsPageCharts();
+    });
+
+    function initAnalyticsPageCharts() {
+        // Active Users Metric Sparkline
+        new ApexCharts(document.querySelector("#active-users-metric-chart"), {
+            chart: { type: 'area', height: 100, sparkline: { enabled: true } },
+            stroke: { curve: 'smooth', width: 2 },
+            series: [{ data: [120, 140, 150, 130, 160, 180, 140, 150, 170, 190, 210, 140] }],
+            colors: ['#06b6d4'],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.2, opacityTo: 0 } }
+        }).render();
+
+        // Peak Load Metric Sparkline
+        new ApexCharts(document.querySelector("#peak-load-metric-chart"), {
+            chart: { type: 'area', height: 100, sparkline: { enabled: true } },
+            stroke: { curve: 'smooth', width: 2 },
+            series: [{ data: [40, 55, 45, 60, 75, 55, 65, 80, 70, 78, 65, 55] }],
+            colors: ['#3b82f6'],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.2, opacityTo: 0 } }
+        }).render();
+
+        // Average Response Time Metric Sparkline
+        new ApexCharts(document.querySelector("#resp-time-metric-chart"), {
+            chart: { type: 'area', height: 100, sparkline: { enabled: true } },
+            stroke: { curve: 'smooth', width: 2 },
+            series: [{ data: [100, 110, 105, 120, 130, 125, 115, 140, 135, 120, 110, 125] }],
+            colors: ['#8b5cf6'],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.2, opacityTo: 0 } }
+        }).render();
+
+        // Long Term User Growth (30 Days)
+        new ApexCharts(document.querySelector("#user-growth-long-chart"), {
+            chart: { type: 'area', height: 350, toolbar: { show: false } },
+            series: [{
+                name: 'Users',
+                data: [10, 25, 30, 45, 40, 55, 60, 75, 70, 85, 90, 105, 100, 115, 120, 135, 130, 145, 150, 165, 160, 175, 180, 195, 190, 205, 210, 225, 220, 240]
+            }],
+            colors: ['#10b981'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 3 },
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
+            xaxis: {
+                type: 'datetime',
+                categories: Array.from({length: 30}, (_, i) => new Date(2024, 9, i+1).getTime()),
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: { show: false },
+            grid: { borderColor: 'rgba(255, 255, 255, 0.05)' }
+        }).render();
+
+        // Resource Usage Stacked Bar Chart
+        new ApexCharts(document.querySelector("#resource-usage-chart"), {
+            chart: { type: 'bar', height: 350, stacked: true, toolbar: { show: false } },
+            plotOptions: { bar: { columnWidth: '40%', borderRadius: 4 } },
+            series: [
+                { name: 'CPU', data: [40, 50, 45, 60, 30, 40, 20, 55, 48, 35] },
+                { name: 'Memory', data: [20, 30, 25, 40, 15, 20, 10, 35, 28, 25] },
+                { name: 'Storage', data: [10, 20, 15, 25, 10, 15, 5, 20, 18, 15] }
+            ],
+            colors: ['#10b981', '#f59e0b', '#3b82f6'],
+            xaxis: {
+                categories: ["Auth", "Database", "API", "CPU", "Unit", "URL", "Email", "SDK", "EDIT", "Other"],
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: { show: false },
+            legend: { show: false },
+            grid: { borderColor: 'rgba(255, 255, 255, 0.05)' }
+        }).render();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Center | Premium Admin Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Reports Center</h1>
+</div>
+<div class="top-actions">
+    <div class="report-stat-summary glass-item">
+        <div class="report-stat-info">
+            <span class="label">Total Reports Generated:</span>
+            <span class="value">1,450</span>
+        </div>
+        <i data-lucide="trending-up" class="trend-icon"></i>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="reports-hub">
+    <!-- Category Grid -->
+    <div class="report-categories">
+        <h3>Category</h3>
+        <div class="category-grid">
+            <div class="category-card glass">
+                <i data-lucide="users-2"></i>
+                <div class="card-info">
+                    <h4>User Engagement Reports</h4>
+                    <p>Engagement metrics and user conversion reports.</p>
+                </div>
+            </div>
+            <div class="category-card glass">
+                <i data-lucide="wallet"></i>
+                <div class="card-info">
+                    <h4>Financial Reports</h4>
+                    <p>Detailed sales reports and financial performance reports.</p>
+                </div>
+            </div>
+            <div class="category-card glass">
+                <i data-lucide="monitor"></i>
+                <div class="card-info">
+                    <h4>System Health Reports</h4>
+                    <p>System health reports mention and system health reports.</p>
+                </div>
+            </div>
+            <div class="category-card glass">
+                <i data-lucide="database"></i>
+                <div class="card-info">
+                    <h4>Custom Query Reports</h4>
+                    <p>Custom query reports assist with custom query reports.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generation Panel -->
+    <div class="generation-panel-container">
+        <div class="generation-panel glass">
+            <h3>Report Generation Panel</h3>
+            <form id="reportGenForm" class="gen-form">
+                <div class="form-group">
+                    <label>Report Type</label>
+                    <select name="type" class="glass-select">
+                        <option value="User Engagement">User Engagement</option>
+                        <option value="Financial">Financial</option>
+                        <option value="System Health">System Health</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date Range</label>
+                    <select name="range" class="glass-select">
+                        <option value="Last 30 Days">Last 30 Days</option>
+                        <option value="Last 7 Days">Last 7 Days</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Format</label>
+                    <select name="format" class="glass-select">
+                        <option value="PDF">PDF</option>
+                        <option value="Excel">Excel</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit blue-gradient">Generate Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reports Tables -->
+    <div class="reports-tables-row">
+        <div class="table-container glass">
+            <div class="table-header">
+                <h3>Archived Reports</h3>
+                <i data-lucide="more-horizontal"></i>
+            </div>
+            <table class="simple-table">
+                <thead>
+                    <tr><th>Report Name</th><th>Date Generated</th><th>By User</th><th>Format</th></tr>
+                </thead>
+                <tbody>
+                    {% for report in archived %}
+                    <tr>
+                        <td>{{ report.name }}</td>
+                        <td>{{ report.date }}</td>
+                        <td>{{ report.user }}</td>
+                        <td><span class="format-pill {{ report.format.lower() }}">{{ report.format }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container glass">
+            <div class="table-header">
+                <h3>Scheduled Reports</h3>
+            </div>
+            <table class="simple-table">
+                <thead>
+                    <tr><th>Name</th><th>Frequency</th><th>Next Run</th><th>Recipient</th></tr>
+                </thead>
+                <tbody>
+                    {% for report in scheduled %}
+                    <tr>
+                        <td>{{ report.name }}</td>
+                        <td>{{ report.freq }}</td>
+                        <td>{{ report.next }}</td>
+                        <td>{{ report.recipient }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="reports-bottom-actions">
+    <div class="app-menu-small glass">
+        <button class="menu-item-small glass-item" onclick="openModal('calendarModal')"><i data-lucide="calendar"></i> Calendar</button>
+        <button class="menu-item-small glass-item" onclick="openModal('tasksModal')"><i data-lucide="check-square"></i> Tasks</button>
+        <button class="menu-item-small glass-item" onclick="openModal('messagesModal')"><i data-lucide="message-circle"></i> Messages</button>
+        <button class="menu-item-small glass-item" onclick="openModal('fileManagerModal')"><i data-lucide="folder-open"></i> File Manager</button>
+        <button class="menu-item-small glass-item"><i data-lucide="sticky-note"></i> Notes</button>
+        <button class="menu-item-small glass-item"><i data-lucide="headphones"></i> Support</button>
+    </div>
+    
+    <div class="quick-actions-row">
+        <button class="action-btn subtle-btn">Schedule Report</button>
+        <button class="action-btn subtle-btn">Build Custom Template</button>
+        <button class="action-btn subtle-btn" onclick="openModal('createUserModal')">Create New User</button>
+    </div>
+</div>
+{% endblock %}
