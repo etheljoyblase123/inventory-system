@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | {{ 'Admin' if (get_user() and get_user().is_admin) else 'Buyer' }} Panel{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <h1>Welcome back, <span class="highlight">{% if session.user_name %}{{ session.user_name }}{% else %}User{% endif %}</span></h1>
+        <div class="dashboard-controls">
+            <button class="btn-icon glass"><i data-lucide="settings-2"></i></button>
+            <button class="btn-icon glass"><i data-lucide="more-horizontal"></i></button>
+        </div>
+    </div>
+
+    <!-- Stats Overview Row -->
+    <div class="stats-row">
+        <!-- Total Users Card -->
+        <div class="stat-card glass interactive">
+            <div class="stat-header">
+                <span class="stat-title">Total Users</span>
+                <span class="growth positive"><i data-lucide="trending-up"></i> +8.3%</span>
+            </div>
+            <div class="stat-value">{{ stats.total_users }}</div>
+            <div class="stat-chart" id="users-spark-chart"></div>
+        </div>
+        
+        <!-- Revenue Card -->
+        <div class="stat-card glass interactive">
+            <div class="stat-header">
+                <span class="stat-title">Revenue</span>
+                <span class="growth positive"><i data-lucide="trending-up"></i> +12.5%</span>
+            </div>
+            <div class="stat-value">{{ stats.revenue }}</div>
+            <div class="stat-chart" id="revenue-spark-chart"></div>
+        </div>
+        
+        <!-- Active Sessions Card -->
+        <div class="stat-card glass interactive">
+            <div class="stat-header">
+                <span class="stat-title">Active Sessions</span>
+                <span class="growth neutral"><i data-lucide="trending-up"></i> +4.2%</span>
+            </div>
+            <div class="stat-value">{{ stats.active_sessions }}</div>
+            <div class="stat-chart" id="sessions-spark-chart"></div>
+        </div>
+    </div>
+
+    <!-- Middle Content Section -->
+    <div class="middle-section">
+        <!-- Monthly User Performance -->
+        <div class="chart-container glass">
+            <div class="chart-header">
+                <h2>Monthly User Growth</h2>
+                <div class="chart-legend">
+                    <span class="legend-item"><div class="dot active"></div> New Users</span>
+                    <span class="legend-item"><div class="dot inactive"></div> Returning</span>
+                </div>
+            </div>
+            <div id="main-performance-chart"></div>
+        </div>
+        
+        <!-- Right Menu / Sidebar -->
+        <div class="side-panel">
+            <div class="app-menu glass">
+                <div class="menu-header">
+                    <span>App</span>
+                    <i data-lucide="layout-grid"></i>
+                </div>
+                <div class="menu-items">
+
+                    <button class="menu-item glass-item" onclick="openModal('tasksModal')"><i data-lucide="check-square"></i> Tasks</button>
+
+                    <button class="menu-item glass-item" onclick="openModal('fileManagerModal')"><i data-lucide="folder-open"></i> File Manager</button>
+
+                    <button class="menu-item glass-item" onclick="openModal('supportModal')"><i data-lucide="headphones"></i> Support</button>
+                </div>
+            </div>
+            
+            <div class="quick-actions">
+                <span class="section-title">Quick Actions</span>
+                <button class="action-btn purple-btn" onclick="openModal('createUserModal')">Create New User</button>
+                <button class="action-btn cyan-btn" onclick="openModal('reportModal')">Generate Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity & System Updates -->
+    <div class="bottom-section">
+        <div class="activity-table-container glass">
+            <div class="table-header">
+                <h2>Recent Activity</h2>
+                <button class="btn-text">View All</button>
+            </div>
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in activity %}
+                    <tr>
+                        <td>
+                            <div class="table-user">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ activity.user }}" class="avatar-mini">
+                                <span>{{ activity.user }}</span>
+                            </div>
+                        </td>
+                        <td>{{ activity.action }}</td>
+                        <td>{{ activity.time }}</td>
+                        <td><span class="status-pill {{ activity.status.lower().replace(' ', '-') }}">{{ activity.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="system-status glass">
+            <div class="status-header">
+                <h2>System Health</h2>
+                <i data-lucide="shield-check" class="success-color"></i>
+            </div>
+            <div class="health-grid">
+                <div class="health-item">
+                    <span class="health-label">Database</span>
+                    <div class="health-indicator success"></div>
+                </div>
+                <!-- ... other health items ... -->
+            </div>
+            <div class="cpu-memory-stats">
+                <div class="mini-chart-item">
+                    <span>CPU</span>
+                    <div id="cpu-chart"></div>
+                </div>
+                <div class="mini-chart-item">
+                    <span>Memory</span>
+                    <div id="memory-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Specific Modals -->
+<div id="calendarModal" class="modal-overlay"> <!-- ... --> </div>
+<div id="fileManagerModal" class="modal-overlay"> <!-- ... --> </div>
+<div id="reportModal" class="modal-overlay"> <!-- ... --> </div>
+<div id="tasksModal" class="modal-overlay"> <!-- (Move task modal here if dashboard specific) --> </div>
+{% endblock %}

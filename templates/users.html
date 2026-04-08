@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Users | {{ 'Admin' if (get_user() and get_user().is_admin) else 'Buyer' }} Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Users</h1>
+</div>
+<div class="top-actions">
+    <form action="{{ url_for('users') }}" method="GET" class="search-container glass-search">
+        <i data-lucide="search"></i>
+        <input type="text" name="search" placeholder="Search users..." value="{{ search_query or '' }}">
+    </form>
+    <button class="btn-add cyan-btn" onclick="openModal('createUserModal')">Add New User</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="users-content glass">
+    <div class="table-controls">
+        <h2>All Users</h2>
+        <button class="btn-primary-small green-btn" onclick="openModal('createUserModal')">Add New User</button>
+    </div>
+    <table class="users-table-page">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div class="table-user">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ user.name }}" class="avatar-mini">
+                        <span>{{ user.name }}</span>
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td><span class="status-pill-solid {{ user.status.lower() }}">{{ user.status }}</span></td>
+                <td>{{ user.last_login }}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="action-icon" title="Edit User" onclick="editUser(this)" data-user='{{ user|tojson|forceescape }}'><i data-lucide="edit-3"></i></button>
+                        <button class="action-icon delete" title="Delete User" onclick="deleteUser({{ user.id }})"><i data-lucide="trash-2"></i></button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}

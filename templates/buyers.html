@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Buyers | Premium Admin Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Buyers</h1>
+</div>
+<div class="top-actions">
+    <div class="search-container glass-search">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Search buyers...">
+    </div>
+    <button class="btn-filter glass"><i data-lucide="filter"></i> Filter</button>
+    <button class="btn-add cyan-btn" onclick="openModal('createUserModal')">Add New Buyer</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="users-content glass">
+    <div class="table-controls">
+        <h2>All Buyers</h2>
+        <button class="btn-primary-small green-btn" onclick="openModal('createUserModal')">Add New Buyer</button>
+    </div>
+    <table class="users-table-page">
+        <thead>
+            <tr>
+                <th>Buyer</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div class="table-user">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ user.name }}" class="avatar-mini">
+                        <span>{{ user.name }}</span>
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td><span class="status-pill-solid {{ user.status.lower() }}">{{ user.status }}</span></td>
+                <td>{{ user.last_login }}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="action-icon"><i data-lucide="edit-3"></i></button>
+                        <button class="action-icon delete"><i data-lucide="trash-2"></i></button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <button class="page-btn"><i data-lucide="chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn">4</button>
+        <button class="page-btn"><i data-lucide="chevron-right"></i></button>
+    </div>
+</div>
+{% endblock %}

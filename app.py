@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
+from extensions import db
+from models import User, Product, Activity, DesignTask, Message, ArchivedReport, Supplier, PurchaseOrder, PurchaseOrderItem, SupportRequest
 from datetime import datetime
 import functools
 
@@ -9,63 +10,9 @@ app.secret_key = 'super-secret-key-replace-me'
 db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'inventory.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-# Models
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False, default='password')
-    role = db.Column(db.String(50), default='User')
-    avatar_seed = db.Column(db.String(100), default='Devoryn')
-    is_admin = db.Column(db.Boolean, default=True)
-    status = db.Column(db.String(20), default='Active')
-    last_login = db.Column(db.String(50))
-
-class Activity(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_name = db.Column(db.String(100))
-    action = db.Column(db.String(200))
-    time = db.Column(db.String(50))
-    status = db.Column(db.String(20))
-
-class DesignTask(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    status = db.Column(db.String(50))
-    priority = db.Column(db.String(50))
-    task = db.Column(db.String(255))
-    assigned = db.Column(db.String(100))
-    due = db.Column(db.String(50))
-
-class Message(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.String(100))
-    text = db.Column(db.Text)
-    time = db.Column(db.String(50))
-    unread = db.Column(db.Boolean, default=False)
-
-class ArchivedReport(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200))
-    date = db.Column(db.String(50))
-    user = db.Column(db.String(100))
-    format = db.Column(db.String(20))
-
-class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    sku = db.Column(db.String(50), unique=True, nullable=False)
-    category = db.Column(db.String(50))
-    price = db.Column(db.Float, default=0.0)
-    stock = db.Column(db.Integer, default=0)
-
-class SupportRequest(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    topic = db.Column(db.String(200))
-    details = db.Column(db.Text)
-    priority = db.Column(db.String(50))
-    requested_by = db.Column(db.String(100))
+# Initialize extensions
+db.init_app(app)
 
 # Helper Decorators
 def login_required(f):
@@ -81,7 +28,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         user = db.session.get(User, session.get('user_id'))
         if not user or not user.is_admin:
-            return redirect(url_for('user_dashboard'))
+            return redirect(url_for('buyer.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -128,6 +75,17 @@ def seed_db():
     
     db.session.commit()
 
+# Supplier Seeding
+def seed_suppliers():
+    if Supplier.query.first(): return
+    suppliers = [
+        Supplier(name="Nebula Tech Corp", email="contact@nebula.com", phone="123-456-7890", address="Silicon Valley, CA"),
+        Supplier(name="Quantum Supplies", email="info@quantum.com", phone="987-654-3210", address="New York, NY"),
+        Supplier(name="Global Mainframe", email="sales@global.com", phone="555-555-5555", address="London, UK")
+    ]
+    db.session.add_all(suppliers)
+    db.session.commit()
+
 # Main Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -138,9 +96,13 @@ def login():
         if user:
             session['user_id'] = user.id
             session['user_name'] = user.name
+            session['role'] = user.role
             user.last_login = datetime.now().strftime("%b %d, %H:%M %p")
             db.session.commit()
-            return redirect(url_for('index'))
+            if user.is_admin:
+                return redirect(url_for('index'))
+            else:
+                return redirect(url_for('buyer.dashboard'))
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -151,7 +113,11 @@ def register():
         password = request.form.get('password')
         if User.query.filter_by(email=email).first():
             return "Email already exists"
-        new_user = User(name=name, email=email, password=password, is_admin=False)
+        
+        role = request.form.get('role', 'Buyer')
+        is_admin = (role == 'Admin')
+        
+        new_user = User(name=name, email=email, password=password, role=role, is_admin=is_admin)
         db.session.add(new_user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -164,6 +130,7 @@ def logout():
 
 @app.route('/')
 @login_required
+@admin_required
 def index():
     stats = {"total_users": "124,500", "revenue": "$842,000", "active_sessions": "8,750"}
     activity = Activity.query.order_by(Activity.id.desc()).limit(10).all()
@@ -175,26 +142,45 @@ def index():
 
 @app.route('/users')
 @login_required
+@admin_required
 def users():
-    users_list = User.query.all()
+    search_query = request.args.get('search', '')
+    if search_query:
+        users_list = User.query.filter(
+            (User.name.like(f"%{search_query}%")) | 
+            (User.email.like(f"%{search_query}%"))
+        ).all()
+    else:
+        users_list = User.query.all()
     messages_list = Message.query.all()
-    return render_template('users.html', users=users_list, messages=messages_list)
+    return render_template('users.html', users=users_list, messages=messages_list, search_query=search_query)
 
 @app.route('/analytics')
 @login_required
+@admin_required
 def analytics():
     messages_list = Message.query.all()
     return render_template('analytics.html', messages=messages_list)
 
 @app.route('/products')
 @login_required
+@admin_required
 def products():
-    prods = Product.query.all()
+    search_query = request.args.get('search', '')
+    if search_query:
+        prods = Product.query.filter(
+            (Product.name.like(f"%{search_query}%")) | 
+            (Product.sku.like(f"%{search_query}%")) |
+            (Product.category.like(f"%{search_query}%"))
+        ).all()
+    else:
+        prods = Product.query.all()
     messages_list = Message.query.all()
-    return render_template('products.html', products=prods, messages=messages_list)
+    return render_template('products.html', products=prods, messages=messages_list, search_query=search_query)
 
 @app.route('/reports')
 @login_required
+@admin_required
 def reports():
     archived = ArchivedReport.query.all()
     messages_list = Message.query.all()
@@ -220,11 +206,43 @@ def create_user():
     new_user = User(
         name=data.get('name', 'New'),
         email=data.get('email', ''),
+        password=data.get('password', 'password'),
         role=data.get('role', 'User'),
         status='Active',
-        last_login=datetime.now().strftime("%b %d, %H:%M %p")
+        last_login=datetime.now().strftime("%b %d, %H:%M %p"),
+        is_admin=(data.get('role') == 'Admin')
     )
     db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/api/delete-user/<int:id>', methods=['POST', 'DELETE'])
+@login_required
+@admin_required
+def delete_user(id):
+    user = db.session.get(User, id)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"})
+    if user.id == session.get('user_id'):
+        return jsonify({"success": False, "error": "Cannot delete yourself"})
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/api/update-user/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def update_user(id):
+    user = db.session.get(User, id)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"})
+    data = request.form
+    user.name = data.get('name', user.name)
+    user.email = data.get('email', user.email)
+    user.role = data.get('role', user.role)
+    user.is_admin = (user.role == 'Admin')
+    if data.get('password'):
+        user.password = data.get('password')
     db.session.commit()
     return jsonify({"success": True})
 
@@ -270,6 +288,33 @@ def add_product():
         stock=int(data.get('stock', 0))
     )
     db.session.add(new_prod)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/api/delete-product/<int:id>', methods=['POST', 'DELETE'])
+@login_required
+@admin_required
+def delete_product(id):
+    product = db.session.get(Product, id)
+    if not product:
+        return jsonify({"success": False, "error": "Product not found"})
+    db.session.delete(product)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/api/update-product/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def update_product(id):
+    product = db.session.get(Product, id)
+    if not product:
+        return jsonify({"success": False, "error": "Product not found"})
+    data = request.form
+    product.name = data.get('name', product.name)
+    product.sku = data.get('sku', product.sku)
+    product.category = data.get('category', product.category)
+    product.price = float(data.get('price', product.price))
+    product.stock = int(data.get('stock', product.stock))
     db.session.commit()
     return jsonify({"success": True})
 
@@ -323,8 +368,13 @@ def get_stats():
         }
     })
 
+# Register Buyer Blueprint (Late import to avoid circular dependency)
+from buyer import buyer_bp
+app.register_blueprint(buyer_bp, url_prefix='/buyer')
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         seed_db()
+        seed_suppliers()
     app.run(debug=True, port=5000)

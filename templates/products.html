@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Products | {{ 'Admin' if (get_user() and get_user().is_admin) else 'Buyer' }} Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Inventory / Management</h1>
+</div>
+<div class="top-actions">
+    <form action="{{ url_for('products') }}" method="GET" class="search-container glass-search">
+        <i data-lucide="search"></i>
+        <input type="text" name="search" placeholder="Search SKU or Name..." value="{{ search_query or '' }}">
+    </form>
+    <button class="btn-add blue-gradient" onclick="openModal('addProductModal')"><i data-lucide="plus"></i> Add Product</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="products-container">
+    <!-- Quick Stats -->
+    <div class="mini-stats-row">
+        <div class="mini-stat glass">
+            <span class="label">Total SKUs</span>
+            <span class="value">{{ products|length }}</span>
+        </div>
+    </div>
+
+    <!-- Product Grid/Table -->
+    <div class="inventory-table-container glass">
+        <div class="table-header">
+            <h2>Product Catalog</h2>
+        </div>
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        <div class="item-info">
+                            <div class="item-icon glass-item"><i data-lucide="package"></i></div>
+                            <span>{{ product.name }}</span>
+                        </div>
+                    </td>
+                    <td><span class="sku-pill">{{ product.sku }}</span></td>
+                    <td>{{ product.category }}</td>
+                    <td>${{ "%.2f"|format(product.price) }}</td>
+                    <td>
+                         <div class="stock-level">
+                             <div class="progress-bg">
+                                 {% set stock_percent = (product.stock / 100 * 100) if product.stock < 100 else 100 %}
+                                 <div class="progress-bar {% if product.stock < 10 %}low{% endif %}" data-stock="{{ stock_percent }}"></div>
+                             </div>
+                             <span>{{ product.stock }}</span>
+                         </div>
+                    </td>
+                    <td>
+                        {% if product.stock > 0 %}
+                        <span class="status-pill in-stock">IN STOCK</span>
+                        {% else %}
+                        <span class="status-pill out-of-stock">OUT OF STOCK</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="btn-action-icon" title="Buy (1 Unit)" onclick="buyProduct({{ product.id }})" style="color: var(--primary-green);"><i data-lucide="shopping-cart"></i></button>
+                            <button class="btn-action-icon" onclick="editProduct(this)" data-product='{{ product|tojson|forceescape }}'><i data-lucide="edit-2"></i></button>
+                            <button class="btn-action-icon delete" onclick="deleteProduct({{ product.id }})"><i data-lucide="trash-2"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .products-container { display: flex; flex-direction: column; gap: 24px; padding: 20px; }
+    .mini-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .mini-stat { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .mini-stat .label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; }
+    .mini-stat .value { font-size: 1.5rem; font-weight: 700; }
+    .red-text { color: #ef4444; }
+
+    .inventory-table-container { padding: 32px; border: 1px solid var(--border-glass); }
+    .inventory-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+    .inventory-table th { text-align: left; padding: 12px; font-size: 0.75rem; color: var(--text-dim); border-bottom: 2px solid var(--border-glass); }
+    .inventory-table td { padding: 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+    .item-info { display: flex; align-items: center; gap: 12px; }
+    .item-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .sku-pill { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-family: monospace; }
+    
+    .stock-level { display: flex; align-items: center; gap: 12px; min-width: 150px; }
+    .progress-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--primary-blue); width: var(--stock-width, 0%); transition: width 0.3s; }
+    .progress-bar.low { background: #f59e0b; }
+    
+    .status-pill.in-stock { color: #10b981; font-size: 0.7rem; font-weight: 800; }
+    .status-pill.out-of-stock { color: #ef4444; font-size: 0.7rem; font-weight: 800; }
+    
+    .btn-action-icon { background: none; border: none; color: var(--text-dim); cursor: pointer; transition: color 0.2s; }
+    .btn-action-icon:hover { color: white; }
+    .btn-action-icon.delete:hover { color: #ef4444; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        const stock = bar.getAttribute('data-stock');
+        if (stock) bar.style.width = stock + '%';
+    });
+</script>
+{% endblock %}
