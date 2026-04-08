@@ -1,1 +1,93 @@
-"<!DOCTYPE html><html></html>" 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlantScanner | All-in-One Plant Care AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/modern.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="container" id="app">
+    <nav class="logout-nav">
+       <span style="margin-right: 15px; opacity: 0.7;"><i class="fas fa-user-circle"></i> {{ current_user.username }}</span>
+       <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+
+    <header>
+      <h1><i class="fas fa-microscope"></i> PlantScanner</h1>
+      <p class="subtitle">AI-Powered Growth & Nutrient Advisor</p>
+    </header>
+
+    <main>
+      <div class="scanner-trigger-section" id="scanner-trigger">
+        <button class="btn-scan-main" onclick="showUploadOptions()">
+          <i class="fas fa-microscope"></i> Start Plant Scanner
+        </button>
+        <p class="guide-text">Identify species and get instant care advice</p>
+      </div>
+
+      <div class="upload-section" id="drop-area" style="display: none;">
+        <div id="upload-label">
+          <div class="upload-options">
+            <div class="option-box" onclick="document.getElementById('file-input').click()">
+              <div class="specimen-tag">ANY PLANT</div>
+              <i class="fas fa-file-image upload-icon"></i>
+              <h3>Upload Photo</h3>
+              <p>Detect species & care needs</p>
+            </div>
+            <div class="option-divider"><span>OR</span></div>
+            <div class="option-box" onclick="startCamera()">
+              <i class="fas fa-camera upload-icon"></i>
+              <h3>Use Camera</h3>
+              <p>Scan live in your garden</p>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="file-input" name="image" accept="image/*" onchange="previewImage(event)" style="display:none;">
+        
+        <!-- Camera View (Hidden by default) -->
+        <div id="camera-container" style="display:none;">
+            <div class="camera-instruction">Center the plant leaf in the frame</div>
+            <div class="camera-guide">
+                <div id="plant-detection-status" class="detection-badge">Identifying Specimen...</div>
+            </div>
+            <video id="video" autoplay playsinline></video>
+            <div class="camera-controls">
+                <button type="button" class="btn-capture" onclick="capturePhoto()"><i class="fas fa-dot-circle"></i></button>
+                <button type="button" class="btn-cancel" onclick="stopCamera()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <canvas id="canvas" style="display:none;"></canvas>
+      </div>
+
+      <div class="preview-container" id="preview-container" style="display:none;">
+        <img id="preview-img" alt="Preview Image">
+        <div id="validation-notice" class="validation-notice"></div>
+        <button id="detect-btn" class="btn-detect" onclick="detectDisease()">Analyze Image</button>
+      </div>
+
+      <div id="loading" class="loading-spinner"></div>
+
+      <section id="result" class="result-section">
+        <h2 style="margin-bottom: 20px;"><i class="fas fa-vial"></i> Analysis & Care Results</h2>
+        <div id="results-container">
+          <!-- Prediction cards will be injected here -->
+        </div>
+        
+        <button class="btn-detect" style="display: block; width: 100%; margin-top: 20px;" onclick="resetApp()">Try New Image</button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 PlantScanner AI. Growing a greener future together.</p>
+    </footer>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
