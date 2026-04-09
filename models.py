@@ -48,6 +48,8 @@ class Product(db.Model):
     category = db.Column(db.String(50))
     price = db.Column(db.Float, default=0.0)
     stock = db.Column(db.Integer, default=0)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(500))
 
 class SupportRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -28,7 +28,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         user = db.session.get(User, session.get('user_id'))
         if not user or not user.is_admin:
-            return redirect(url_for('buyer.dashboard'))
+            return redirect(url_for('shop'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -46,9 +46,18 @@ def seed_db():
     
     # initial products
     products = [
-        Product(name="Nebula Workstation V1", sku="NB-WRK-001", category="Electronics", price=2499.0, stock=15),
-        Product(name="Quantum Drive 2TB", sku="QD-SSD-012", category="Storage", price=189.0, stock=8),
-        Product(name="Glass Core Logic Unit", sku="LU-GLS-045", category="Mainframe", price=4500.0, stock=2)
+        Product(name="Product1", sku="NB-WRK-001", category="Electronics", price=2499.0, stock=15, rating=4.8),
+        Product(name="product2", sku="QD-SSD-012", category="Storage", price=189.0, stock=8, rating=4.5),
+        Product(name="product3", sku="LU-GLS-045", category="Mainframe", price=4500.0, stock=2, rating=5.0),
+        Product(name="product4", sku="AZ-HDP-001", category="Accessories", price=349.0, stock=25, rating=4.7),
+        Product(name="product5", sku="CW-WCH-002", category="Gadgets", price=199.0, stock=50, rating=4.2),
+        Product(name="product6", sku="TM-KBD-003", category="Peripherals", price=159.0, stock=40, rating=4.6),
+        Product(name="product7", sku="VP-MON-004", category="Electronics", price=899.0, stock=12, rating=4.9),
+        Product(name="product8", sku="NC-PAD-005", category="Gadgets", price=49.0, stock=100, rating=4.0),
+        Product(name="product9", sku="ES-SND-006", category="Audio", price=279.0, stock=30, rating=4.3),
+        Product(name="product10", sku="PF-FIT-007", category="Gadgets", price=89.0, stock=4, rating=4.1),
+        Product(name="product11", sku="SM-MSG-008", category="Peripherals", price=79.0, stock=60, rating=4.5),
+        Product(name="product12", sku="VG-CHR-009", category="Furniture", price=399.0, stock=10, rating=4.8)
     ]
     db.session.add_all(products)
     
@@ -102,11 +111,41 @@ def login():
             if user.is_admin:
                 return redirect(url_for('index'))
             else:
-                return redirect(url_for('buyer.dashboard'))
+                return redirect(url_for('shop'))
     return render_template('login.html')
+
+@app.route('/shop')
+@login_required
+def shop():
+    search_query = request.args.get('search', '')
+    if search_query:
+        prods = Product.query.filter(
+            (Product.name.contains(search_query)) | 
+            (Product.category.contains(search_query))
+        ).all()
+    else:
+        prods = Product.query.all()
+    return render_template('shop/home.html', products=prods, search_query=search_query)
+
+@app.route('/shop/cart')
+@login_required
+def cart():
+    return render_template('shop/cart.html')
+
+@app.route('/shop/orders')
+@login_required
+def orders():
+    return render_template('shop/orders.html')
+
+@app.route('/shop/others')
+@app.route('/shop/others/<tab>')
+@login_required
+def others(tab='profile'):
+    return render_template('shop/others.html', active_tab=tab)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # ... existing register code ...
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
@@ -130,8 +169,16 @@ def logout():
 
 @app.route('/')
 @login_required
-@admin_required
 def index():
+    user = db.session.get(User, session.get('user_id'))
+    if user and user.is_admin:
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('shop'))
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
     stats = {"total_users": "124,500", "revenue": "$842,000", "active_sessions": "8,750"}
     activity = Activity.query.order_by(Activity.id.desc()).limit(10).all()
     tasks = DesignTask.query.all()
@@ -368,9 +415,6 @@ def get_stats():
         }
     })
 
-# Register Buyer Blueprint (Late import to avoid circular dependency)
-from buyer import buyer_bp
-app.register_blueprint(buyer_bp, url_prefix='/buyer')
 
 if __name__ == '__main__':
     with app.app_context():
