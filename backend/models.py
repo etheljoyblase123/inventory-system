@@ -1,4 +1,4 @@
-from extensions import db
+from backend.extensions import db
 from datetime import datetime
 
 class User(db.Model):
@@ -11,6 +11,18 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=True)
     status = db.Column(db.String(20), default='Active')
     last_login = db.Column(db.String(50))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "role": self.role,
+            "avatar_seed": self.avatar_seed,
+            "is_admin": self.is_admin,
+            "status": self.status,
+            "last_login": self.last_login
+        }
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,6 +60,20 @@ class Product(db.Model):
     category = db.Column(db.String(50))
     price = db.Column(db.Float, default=0.0)
     stock = db.Column(db.Integer, default=0)
+    rating = db.Column(db.Float, default=0.0)
+    image_url = db.Column(db.String(500))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "sku": self.sku,
+            "category": self.category,
+            "price": self.price,
+            "stock": self.stock,
+            "rating": self.rating,
+            "image_url": self.image_url
+        }
 
 class SupportRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -84,3 +110,31 @@ class PurchaseOrderItem(db.Model):
 
     po = db.relationship('PurchaseOrder', backref=db.backref('items', lazy=True))
     product = db.relationship('Product', backref=db.backref('po_items', lazy=True))
+
+class Sale(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, default=1)
+    amount = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('Product', backref=db.backref('sales', lazy=True))
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='Pending') # Pending, Confirmed, Cancelled
+    total_amount = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('orders', lazy=True))
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, default=1)
+    price = db.Column(db.Float)
+
+    order = db.relationship('Order', backref=db.backref('items', lazy=True))
+    product = db.relationship('Product')

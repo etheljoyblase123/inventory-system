@@ -1,4 +1,4 @@
-from app import app, db, seed_db
+from backend.app import app, db, seed_db
 with app.app_context():
     db.drop_all()
     db.create_all()
