@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Products | {{ 'Admin' if (get_user() and get_user().is_admin) else 'Buyer' }} Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Inventory / Management</h1>
+</div>
+<div class="top-actions">
+    <form action="{{ url_for('products') }}" method="GET" class="search-container glass-search">
+        <i data-lucide="search"></i>
+        <input type="text" name="search" placeholder="Search SKU or Name..." value="{{ search_query or '' }}">
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="products-container">
+    <!-- Quick Management Row -->
+    {% set current_user = get_user() %}
+    {% if current_user.is_admin %}
+    <div class="management-header glass">
+        <div class="header-main">
+            <h2>Product Management</h2>
+            <p>Manage your inventory, track stock levels, and organize products by category.</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-primary blue-gradient" onclick="openModal('addProductModal')">
+                <i data-lucide="plus-circle"></i> New Product
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats & Filters Row -->
+    <div class="filter-stats-grid">
+        <div class="mini-stats glass">
+            <div class="stat-item">
+                <span class="stat-label">Total SKUs</span>
+                <span class="stat-value">{{ products|length }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Low Stock</span>
+                {% set low_count = products|selectattr('stock', 'lt', 10)|list|length %}
+                <span class="stat-value {% if low_count > 0 %}alert-text{% endif %}">{{ low_count }}</span>
+            </div>
+        </div>
+        
+        <div class="category-filters glass">
+            <button class="filter-tab active" data-category="all">All Items</button>
+            <button class="filter-tab" data-category="Electronics">Electronics</button>
+            <button class="filter-tab" data-category="Furniture">Furniture</button>
+            <button class="filter-tab" data-category="Office Supplies">Office Supplies</button>
+        </div>
+    </div>
+
+    <!-- Product Grid/Table -->
+    <div class="inventory-display-container">
+        {% if current_user.is_admin %}
+            <!-- Admin Table View -->
+            <div class="inventory-table-container glass">
+                <div class="table-toolbar">
+                    <div class="table-search">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="tableSearch" placeholder="Filter by Name, SKU, or Category..." onkeyup="filterTable()">
+                    </div>
+                </div>
+                <table class="inventory-table" id="productsTable">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <div class="item-info">
+                                    <div class="item-preview-img glass-item">
+                                        <img src="{{ product.image_url or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=50' }}" class="table-img">
+                                    </div>
+                                    <span>{{ product.name }}</span>
+                                </div>
+                            </td>
+                            <td><span class="sku-pill">{{ product.sku }}</span></td>
+                            <td>{{ product.category }}</td>
+                            <td>${{ "%.2f"|format(product.price) }}</td>
+                            <td>
+                                 <div class="stock-level">
+                                     <div class="progress-bg">
+                                         {% set stock_percent = (product.stock / 100 * 100) if product.stock < 100 else 100 %}
+                                         <div class="progress-bar {% if product.stock < 10 %}low{% endif %}" data-stock="{{ stock_percent }}"></div>
+                                     </div>
+                                     <span>{{ product.stock }}</span>
+                                 </div>
+                            </td>
+                            <td>
+                                {% if product.stock > 0 %}
+                                <span class="status-pill in-stock">IN STOCK</span>
+                                {% else %}
+                                <span class="status-pill out-of-stock">OUT OF STOCK</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="table-actions">
+
+                                    <button class="btn-action-icon" onclick="editProduct(this)" data-product='{{ product.to_dict()|tojson|forceescape }}'><i data-lucide="edit-2"></i></button>
+                                    <button class="btn-action-icon delete" onclick="deleteProduct('{{ product.id }}')"><i data-lucide="trash-2"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <!-- Buyer Grid View -->
+            <div class="product-grid" id="productGrid">
+                {% for product in products %}
+                <div class="product-card glass animated-card" data-category="{{ product.category }}">
+                    <div class="product-image">
+                        <img src="{{ product.image_url or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=400' }}" alt="{{ product.name }}">
+                        <div class="category-tag">{{ product.category }}</div>
+                    </div>
+                    <div class="product-content">
+                        <div class="prod-header">
+                            <h3>{{ product.name }}</h3>
+                            <span class="price-tag">${{ "%.2f"|format(product.price) }}</span>
+                        </div>
+                        <p class="sku-text">{{ product.sku }}</p>
+                        <div class="prod-footer">
+                            <span class="stock-info {% if product.stock < 5 %}urgent{% endif %}">
+                                <i data-lucide="package"></i> {{ product.stock }} available
+                            </span>
+                        </div>
+                        <div class="prod-actions-row">
+                            <button class="btn-cart glass-btn" onclick="addToCart('{{ product.id }}')" {% if product.stock == 0 %}disabled{% endif %}>
+                                <i data-lucide="shopping-cart"></i> Cart
+                            </button>
+                            <button class="btn-buy-now blue-gradient-btn" onclick="buyNow('{{ product.id }}')" {% if product.stock == 0 %}disabled{% endif %}>
+                                Purchase
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .products-container { display: flex; flex-direction: column; gap: 24px; padding: 20px; }
+    
+    .management-header { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--primary-blue); }
+    .header-main h2 { font-size: 1.8rem; margin-bottom: 4px; }
+    .header-main p { color: var(--text-dim); font-size: 0.95rem; }
+    .btn-primary { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.2s; }
+    .btn-primary:hover { transform: translateY(-2px); }
+
+    .filter-stats-grid { display: grid; grid-template-columns: 350px 1fr; gap: 24px; }
+    .mini-stats { display: flex; gap: 32px; padding: 24px 32px; }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; }
+    .alert-text { color: #f59e0b; }
+
+    .category-filters { display: flex; gap: 12px; padding: 12px 24px; align-items: center; }
+    .filter-tab { background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); padding: 8px 20px; border-radius: 30px; color: var(--text-dim); cursor: pointer; transition: all 0.2s; }
+    .filter-tab:hover { background: rgba(255,255,255,0.1); color: white; }
+    .filter-tab.active { background: var(--primary-blue); color: white; border-color: transparent; }
+
+    .inventory-table-container { padding: 0; overflow: hidden; }
+    .table-toolbar { padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glass); }
+    .table-search { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 10px 20px; border-radius: 30px; width: 400px; border: 1px solid var(--border-glass); }
+    .table-search input { background: none; border: none; color: white; font-size: 0.9rem; width: 100%; outline: none; }
+    .toolbar-actions { display: flex; gap: 12px; }
+    .btn-icon-subtle { background: rgba(255,255,255,0.05); border: none; color: var(--text-dim); width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .btn-icon-subtle:hover { background: rgba(255,255,255,0.1); color: white; }
+
+    .inventory-table { width: 100%; border-collapse: collapse; }
+    .inventory-table th { text-align: left; padding: 16px 32px; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border-glass); }
+    .inventory-table td { padding: 20px 32px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+    .item-info { display: flex; align-items: center; gap: 12px; }
+    .item-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .sku-pill { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-family: monospace; }
+    
+    .stock-level { display: flex; align-items: center; gap: 12px; min-width: 150px; }
+    .progress-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--primary-blue); width: var(--stock-width, 0%); transition: width 0.3s; }
+    .progress-bar.low { background: #f59e0b; }
+    
+    .status-pill.in-stock { color: #10b981; font-size: 0.7rem; font-weight: 800; }
+    .status-pill.out-of-stock { color: #ef4444; font-size: 0.7rem; font-weight: 800; }
+    
+    .table-actions { display: flex; gap: 8px; }
+    .btn-action-icon { background: none; border: none; color: var(--text-dim); cursor: pointer; transition: color 0.2s; }
+    .btn-action-icon:hover { color: white; }
+    .btn-action-icon.delete:hover { color: #ef4444; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setupCategoryTabs();
+        updateStockBars();
+    });
+
+    function setupCategoryTabs() {
+        const tabs = document.querySelectorAll('.filter-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                filterTableByTab(tab.dataset.category);
+            });
+        });
+    }
+
+    function updateStockBars() {
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const stock = bar.getAttribute('data-stock');
+            if (stock) bar.style.width = stock + '%';
+        });
+    }
+
+    function filterTable() {
+        const input = document.getElementById("tableSearch");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("productsTable");
+        const tr = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < tr.length; i++) {
+            const textContent = tr[i].textContent.toUpperCase();
+            tr[i].style.display = textContent.includes(filter) ? "" : "none";
+        }
+    }
+
+    function filterTableByTab(category) {
+        const table = document.getElementById("productsTable");
+        const tr = table.getElementsByTagName("tr");
+        const filter = category.toUpperCase();
+
+        for (let i = 1; i < tr.length; i++) {
+            if (filter === 'ALL') {
+                tr[i].style.display = "";
+            } else {
+                const catCell = tr[i].getElementsByTagName("td")[2]; // Category is index 2
+                if (catCell) {
+                    const txtValue = catCell.textContent || catCell.innerText;
+                    tr[i].style.display = txtValue.toUpperCase().includes(filter) ? "" : "none";
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

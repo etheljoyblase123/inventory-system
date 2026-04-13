@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Buyer Dashboard | {{ session.user_name }}{% endblock %}
+
+{% block content %}
+<div class="buyer-dashboard">
+    <div class="welcome-section">
+        <h1>Welcome, <span class="highlight">{{ session.user_name }}</span></h1>
+        <p>Browse our latest products and track your orders.</p>
+    </div>
+
+    <!-- Stats Row for Buyer -->
+    <div class="stats-row">
+        <div class="stat-card glass interactive">
+            <div class="stat-header">
+                <span class="stat-title">My Orders</span>
+                <i data-lucide="shopping-bag" class="icon-blue"></i>
+            </div>
+            <div class="stat-value">{{ orders|length }}</div>
+            <div class="stat-label">Total orders placed</div>
+        </div>
+        
+        <div class="stat-card glass interactive">
+            <div class="stat-header">
+                <span class="stat-title">Pending</span>
+                <i data-lucide="clock" class="icon-orange"></i>
+            </div>
+            <div class="stat-value">{{ orders|selectattr('status', 'equalto', 'Pending')|list|length }}</div>
+            <div class="stat-label">Waiting for confirmation</div>
+        </div>
+    </div>
+
+    <!-- Featured Products -->
+    <div class="featured-section">
+        <div class="section-header">
+            <h2>Latest arrivals</h2>
+            <a href="/products" class="btn-text">View Catalog <i data-lucide="arrow-right"></i></a>
+        </div>
+        <div class="product-grid">
+            {% for item in featured %}
+            <div class="product-card glass animated-card">
+                <div class="product-image">
+                    <img src="{{ item.image_url or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=400&auto=format&fit=crop' }}" alt="{{ item.name }}">
+                    <div class="category-badge">{{ item.category }}</div>
+                </div>
+                <div class="product-info">
+                    <h3>{{ item.name }}</h3>
+                    <div class="price-row">
+                        <span class="price">${{ "%.2f"|format(item.price) }}</span>
+                        <div class="rating"><i data-lucide="star"></i> {{ item.rating or '4.5' }}</div>
+                    </div>
+                    <div class="dashboard-card-actions">
+                        <button class="btn-dashboard-cart glass-btn" onclick="addToCart('{{ item.id }}')" {% if item.stock == 0 %}disabled{% endif %}>
+                            <i data-lucide="shopping-cart"></i>
+                        </button>
+                        <button class="btn-dashboard-buy blue-gradient" onclick="buyNow('{{ item.id }}')" {% if item.stock == 0 %}disabled{% endif %}>
+                            Buy Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="recent-orders-section glass">
+        <div class="section-header">
+            <h2>Recent Orders</h2>
+            <a href="/buyer/orders" class="btn-text">See all history</a>
+        </div>
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>#ORD-{{ order.id }}</td>
+                    <td>{{ order.created_at.strftime("%b %d") }}</td>
+                    <td><span class="status-pill {{ order.status.lower() }}">{{ order.status }}</span></td>
+                    <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center; padding: 20px;">No orders found yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .buyer-dashboard { display: flex; flex-direction: column; gap: 32px; padding: 24px; }
+    .welcome-section h1 { font-size: 2.5rem; margin-bottom: 8px; }
+    .welcome-section p { color: var(--text-dim); font-size: 1.1rem; }
+    
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .section-header h2 { font-size: 1.5rem; }
+    
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .product-card { border-radius: 20px; overflow: hidden; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border: 1px solid rgba(255,255,255,0.05); }
+    .product-card:hover { transform: translateY(-10px); background: rgba(255,255,255,0.08); border-color: var(--primary-blue); }
+    
+    .product-image { height: 200px; position: relative; overflow: hidden; }
+    .product-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .product-card:hover .product-image img { transform: scale(1.1); }
+    
+    .category-badge { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; }
+    
+    .product-info { padding: 20px; }
+    .product-info h3 { font-size: 1.2rem; margin-bottom: 12px; }
+    .price-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .price { font-size: 1.4rem; font-weight: 800; color: var(--primary-blue); }
+    .rating { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #fbbf24; }
+    .rating i { width: 14px; height: 14px; fill: currentColor; }
+    
+    .btn-buy { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 700; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: filter 0.2s; }
+    .btn-buy:hover { filter: brightness(1.1); }
+
+    .recent-orders-section { padding: 24px; border-radius: 20px; }
+    .status-pill.pending { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+    .status-pill.confirmed { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+    
+    .icon-blue { color: var(--primary-blue); }
+    .icon-orange { color: #f59e0b; }
+</style>
+{% endblock %}

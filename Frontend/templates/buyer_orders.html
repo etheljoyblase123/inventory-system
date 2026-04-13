@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Order History | Buyer Portal{% endblock %}
+
+{% block content %}
+<div class="buyer-orders-premium">
+    <div class="header-section">
+        <div class="title-block">
+            <h1>My <span class="highlight">Orders</span></h1>
+            <p>View and manage your purchase history and order status.</p>
+        </div>
+        <div class="order-stats-top">
+            <div class="small-stat-card glass">
+                <span class="label">Total Spent</span>
+                <span class="value">${{ "%.2f"|format(orders|sum(attribute='total_amount')) }}</span>
+            </div>
+            <div class="small-stat-card glass">
+                <span class="label">Orders</span>
+                <span class="value">{{ orders|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="orders-list-wrapper">
+        {% for order in orders %}
+        <div class="order-card-premium glass animated-card">
+            <div class="order-card-header">
+                <div class="order-id-block">
+                    <span class="order-no">Order #ORD-{{ order.id }}</span>
+                    <span class="order-date">{{ order.created_at.strftime("%B %d, %Y") }}</span>
+                </div>
+                <div class="order-total-block">
+                    <span class="total-label">Total Amount</span>
+                    <span class="total-price">${{ "%.2f"|format(order.total_amount) }}</span>
+                </div>
+                <div class="order-status-badge">
+                    <span class="status-pill {{ order.status.lower() }}">
+                        <i data-lucide="{{ 'clock' if order.status == 'Pending' else 'check-circle' }}"></i>
+                        {{ order.status }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tracking Stepper -->
+            <div class="tracking-stepper">
+                <div class="step completed">
+                    <div class="step-icon"><i data-lucide="shopping-cart"></i></div>
+                    <span class="step-label">Placed</span>
+                </div>
+                <div class="step-line {{ 'active' if order.status == 'Confirmed' }}"></div>
+                <div class="step {{ 'completed' if order.status == 'Confirmed' }}">
+                    <div class="step-icon">
+                        {% if order.status == 'Confirmed' %}
+                        <i data-lucide="package"></i>
+                        {% else %}
+                        <i data-lucide="loader"></i>
+                        {% endif %}
+                    </div>
+                    <span class="step-label">Confirmed</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step">
+                    <div class="step-icon"><i data-lucide="truck"></i></div>
+                    <span class="step-label">Shipped</span>
+                </div>
+            </div>
+
+            <div class="order-items-grid">
+                {% for item in order.items %}
+                <div class="order-item-row">
+                    <div class="item-img-mini glass">
+                        <img src="{{ item.product.image_url or 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=100' }}" alt="{{ item.product.name }}">
+                    </div>
+                    <div class="item-details">
+                        <span class="item-name">{{ item.product.name }}</span>
+                        <span class="item-meta">{{ item.product.category }} • Qty: {{ item.quantity }}</span>
+                    </div>
+                    <div class="item-price-block">
+                        <span class="unit-price">${{ "%.2f"|format(item.price) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="order-card-footer">
+                <button class="btn-text" onclick="showToast('Invoice generation coming soon!')">
+                    <i data-lucide="file-text"></i> Download Invoice
+                </button>
+                {% if order.status == 'Pending' %}
+                <span class="footer-note">Waiting for warehouse validation</span>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-orders glass">
+            <div class="empty-icon glass-item"><i data-lucide="package-x"></i></div>
+            <h2>No orders found</h2>
+            <p>Looks like you haven't placed any orders yet. Explore our catalog to find something amazing!</p>
+            <a href="/products" class="btn-primary blue-gradient">Start Shopping</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .buyer-orders-premium { padding: 32px; display: flex; flex-direction: column; gap: 40px; }
+    
+    .header-section { display: flex; justify-content: space-between; align-items: flex-end; }
+    .title-block h1 { font-size: 2.8rem; margin-bottom: 8px; }
+    .title-block p { color: var(--text-dim); font-size: 1.1rem; }
+    
+    .order-stats-top { display: flex; gap: 20px; }
+    .small-stat-card { padding: 16px 24px; border-radius: 16px; display: flex; flex-direction: column; min-width: 140px; }
+    .small-stat-card .label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+    .small-stat-card .value { font-size: 1.4rem; font-weight: 800; color: white; margin-top: 4px; }
+
+    .orders-list-wrapper { display: flex; flex-direction: column; gap: 24px; }
+    
+    .order-card-premium { border-radius: 24px; padding: 32px; border: 1px solid rgba(255,255,255,0.05); }
+    .order-card-header { display: grid; grid-template-columns: 1fr 1fr auto; gap: 40px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    
+    .order-id-block { display: flex; flex-direction: column; gap: 4px; }
+    .order-no { font-weight: 800; font-size: 1.1rem; color: white; }
+    .order-date { font-size: 0.85rem; color: var(--text-dim); }
+    
+    .order-total-block { display: flex; flex-direction: column; gap: 4px; }
+    .total-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; }
+    .total-price { font-size: 1.25rem; font-weight: 800; color: var(--primary-blue); }
+    
+    .status-pill { display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 30px; font-weight: 700; font-size: 0.85rem; }
+    .status-pill i { width: 16px; height: 16px; }
+    .status-pill.pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .status-pill.confirmed { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+    /* Stepper */
+    .tracking-stepper { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; padding: 0 40px; }
+    .step { display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; z-index: 1; }
+    .step-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--text-dim); transition: all 0.3s; }
+    .step.completed .step-icon { background: var(--primary-blue); border-color: var(--primary-blue); color: white; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+    .step-label { font-size: 0.8rem; font-weight: 600; color: var(--text-dim); }
+    .step.completed .step-label { color: white; }
+    
+    .step-line { flex: 1; height: 2px; background: rgba(255,255,255,0.1); margin: 0 10px; margin-bottom: 24px; }
+    .step-line.active { background: var(--primary-blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+
+    .order-items-grid { display: grid; gap: 16px; }
+    .order-item-row { display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 24px; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid rgba(255,255,255,0.03); }
+    .item-img-mini { width: 80px; height: 80px; border-radius: 12px; overflow: hidden; padding: 4px; }
+    .item-img-mini img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    
+    .item-name { display: block; font-weight: 700; color: white; margin-bottom: 4px; }
+    .item-meta { font-size: 0.85rem; color: var(--text-dim); }
+    .unit-price { font-weight: 800; color: white; font-size: 1.1rem; }
+
+    .order-card-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .btn-text { background: none; border: none; color: var(--primary-blue); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .btn-text:hover { text-decoration: underline; color: #60a5fa; }
+    .footer-note { font-size: 0.8rem; color: var(--text-dim); font-style: italic; }
+
+    .empty-orders { padding: 80px; text-align: center; border-radius: 32px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .empty-icon { width: 100px; height: 100px; border-radius: 50%; font-size: 40px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .empty-orders h2 { font-size: 2rem; }
+    .empty-orders p { max-width: 400px; color: var(--text-dim); line-height: 1.6; }
+</style>
+{% endblock %}

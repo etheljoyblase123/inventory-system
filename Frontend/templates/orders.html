@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Order Fulfillment | Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-orders-premium">
+    <div class="header-section">
+        <div class="title-block">
+            <h1>Order <span class="highlight">Fulfillment</span></h1>
+            <p>Process customer purchases and manage stock verification.</p>
+        </div>
+        <div class="stats-grid">
+            <div class="mini-stat glass purple-border">
+                <span class="label">Pending</span>
+                <span class="value">{{ orders|selectattr('status', 'equalto', 'Pending')|list|length }}</span>
+            </div>
+            <div class="mini-stat glass green-border">
+                <span class="label">Completed</span>
+                <span class="value">{{ orders|selectattr('status', 'equalto', 'Confirmed')|list|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="management-controls glass">
+        <div class="search-bar-enhanced">
+            <i data-lucide="search"></i>
+            <input type="text" id="orderSearch" placeholder="Search by Order ID, Customer Name..." onkeyup="filterOrders()">
+        </div>
+        <div class="filter-tabs-orders">
+            <button class="filter-tab-alt active" onclick="filterByStatus('all')">All Orders</button>
+            <button class="filter-tab-alt" onclick="filterByStatus('Pending')">Pending</button>
+            <button class="filter-tab-alt" onclick="filterByStatus('Confirmed')">Confirmed</button>
+            <button class="filter-tab-alt" onclick="filterByStatus('Cancelled')">Cancelled</button>
+        </div>
+    </div>
+
+    <div class="orders-table-wrapper glass">
+        <table class="premium-table" id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order Info</th>
+                    <th>Customer</th>
+                    <th>Product Items</th>
+                    <th>Subtotal</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="order-row" data-status="{{ order.status }}">
+                    <td>
+                        <div class="order-id-cell">
+                            <span class="id-text">#ORD-{{ order.id }}</span>
+                            <span class="date-text-mini">{{ order.created_at.strftime("%b %d, %H:%M") }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="customer-cell">
+                            <div class="avatar-mini blue-gradient">{{ (order.user.name or 'U')[0] }}</div>
+                            <div class="customer-info">
+                                <span class="cust-name">{{ order.user.name }}</span>
+                                <span class="cust-email">Customer ID: #{{ order.user_id }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="items-summary-list">
+                            {% for item in order.items %}
+                            <div class="item-pill">
+                                <span class="item-qty">{{ item.quantity }}x</span>
+                                <span class="item-name">{{ item.product.name }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="price-premium">${{ "%.2f"|format(order.total_amount) }}</span>
+                    </td>
+                    <td>
+                        <div class="status-indicator-block">
+                            <span class="status-dot {{ order.status.lower() }}"></span>
+                            <span class="status-label-text">{{ order.status }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            {% if order.status == 'Pending' %}
+                            <button class="btn-action-confirm blue-gradient" onclick="confirmOrder('{{ order.id }}')">
+                               Process
+                            </button>
+                            <button class="btn-action-cancel" onclick="cancelOrder('{{ order.id }}')" title="Cancel Order">
+                                <i data-lucide="x-circle"></i>
+                            </button>
+                            {% elif order.status == 'Confirmed' %}
+                            <div class="completed-msg">
+                                <i data-lucide="check-circle-2"></i> Done
+                            </div>
+                            <button class="btn-action-cancel-small" onclick="cancelOrder('{{ order.id }}')" title="Void & Restock">
+                                <i data-lucide="rotate-ccw"></i>
+                            </button>
+                            {% else %}
+                            <span class="cancelled-label">Voided</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .admin-orders-premium { padding: 32px; display: flex; flex-direction: column; gap: 32px; }
+    
+    .header-section { display: flex; justify-content: space-between; align-items: flex-end; }
+    .title-block h1 { font-size: 2.2rem; }
+    .stats-grid { display: flex; gap: 16px; }
+    .mini-stat { padding: 16px 24px; border-radius: 16px; display: flex; flex-direction: column; min-width: 120px; }
+    .mini-stat .label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; }
+    .mini-stat .value { font-size: 1.4rem; font-weight: 800; }
+    .purple-border { border-left: 4px solid var(--primary-blue); }
+    .green-border { border-left: 4px solid #10b981; }
+
+    .management-controls { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-radius: 20px; }
+    .search-bar-enhanced { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 10px 20px; border-radius: 30px; width: 350px; border: 1px solid rgba(255,255,255,0.1); }
+    .search-bar-enhanced input { background: none; border: none; color: white; outline: none; flex: 1; font-size: 0.9rem; }
+    
+    .filter-tabs-orders { display: flex; gap: 8px; }
+    .filter-tab-alt { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 12px; color: var(--text-dim); cursor: pointer; transition: all 0.2s; font-size: 0.85rem; }
+    .filter-tab-alt.active { background: var(--primary-blue); color: white; border-color: transparent; }
+
+    .orders-table-wrapper { border-radius: 24px; overflow: hidden; }
+    .premium-table { width: 100%; border-collapse: collapse; }
+    .premium-table th { text-align: left; padding: 20px 24px; background: rgba(255,255,255,0.02); font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; }
+    .premium-table td { padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    
+    .order-id-cell { display: flex; flex-direction: column; gap: 4px; }
+    .id-text { font-weight: 800; color: white; }
+    .date-text-mini { font-size: 0.75rem; color: var(--text-dim); }
+
+    .customer-cell { display: flex; align-items: center; gap: 12px; }
+    .avatar-mini { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; }
+    .customer-info { display: flex; flex-direction: column; }
+    .cust-name { font-weight: 700; color: white; }
+    .cust-email { font-size: 0.75rem; color: var(--text-dim); }
+
+    .items-summary-list { display: flex; flex-wrap: wrap; gap: 8px; max-width: 300px; }
+    .item-pill { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; display: flex; gap: 6px; }
+    .item-qty { color: var(--primary-blue); font-weight: 800; }
+    .item-name { color: var(--text-dim); }
+
+    .table-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-action-cancel { background: none; border: none; color: #f87171; cursor: pointer; transition: color 0.2s; display: flex; align-items: center; }
+    .btn-action-cancel:hover { color: #ef4444; }
+    .btn-action-cancel i { width: 20px; height: 20px; }
+
+    .btn-action-cancel-small { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); cursor: pointer; transition: all 0.2s; }
+    .btn-action-cancel-small:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    .btn-action-cancel-small i { width: 14px; height: 14px; }
+
+    .cancelled-label { font-size: 0.75rem; font-weight: 700; color: #ef4444; text-transform: uppercase; background: rgba(239, 68, 68, 0.1); padding: 4px 12px; border-radius: 20px; }
+    .status-dot.cancelled { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterOrders() {
+        const query = document.getElementById('orderSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('.order-row');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? "" : "none";
+        });
+    }
+
+    function filterByStatus(status) {
+        // Update tabs
+        document.querySelectorAll('.filter-tab-alt').forEach(tab => {
+            tab.classList.toggle('active', tab.textContent.toLowerCase().includes(status.toLowerCase()));
+        });
+        if (status === 'all') document.querySelector('.filter-tab-alt:nth-child(1)').classList.add('active');
+
+        const rows = document.querySelectorAll('.order-row');
+        rows.forEach(row => {
+            if (status === 'all' || row.dataset.status === status) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    function confirmOrder(orderId) {
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        
+        showToast('Processing fulfillment...', 'success');
+        
+        fetch('/api/confirm-order', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Order confirmed and processed!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+    function cancelOrder(orderId) {
+        if (!confirm('Are you sure you want to CANCEL this order? Items will be added back to stock.')) return;
+        
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        
+        fetch('/api/cancel-order', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Order cancelled and restocked!');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+</script>
+{% endblock %}

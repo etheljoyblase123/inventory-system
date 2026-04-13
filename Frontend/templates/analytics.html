@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | {{ 'Admin' if (get_user() and get_user().is_admin) else 'Buyer' }} Panel{% endblock %}
+
+{% block topbar %}
+<div class="page-title">
+    <h1>Analytics</h1>
+</div>
+<div class="top-actions">
+    <div class="date-range-picker glass-item">
+         <i data-lucide="calendar"></i>
+         <span id="analytics-range">Last 30 Days</span>
+         <i data-lucide="chevron-down"></i>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-grid">
+    <!-- Top Metrics Row -->
+    <div class="metrics-row">
+
+        
+        <!-- Low Stock Items -->
+        <div class="metric-card glass">
+            <div class="metric-info">
+                <span class="metric-label">LOW STOCK ITEMS</span>
+                <div class="metric-value" id="low-stock-val">--</div>
+            </div>
+            <div class="metric-chart" id="peak-load-metric-chart"></div>
+        </div>
+        
+        <!-- Total Products -->
+        <div class="metric-card glass">
+            <div class="metric-info">
+                <span class="metric-label">TOTAL UNIQUE PRODUCTS</span>
+                <div class="metric-value" id="total-prods-val">--</div>
+            </div>
+            <div class="metric-chart" id="resp-time-metric-chart"></div>
+        </div>
+    </div>
+
+    <!-- Main Analytics Section -->
+    <div class="analytics-charts-row">
+
+        
+        <!-- Stock Distribution by Category -->
+        <div class="chart-container-analytics glass">
+            <div class="chart-header">
+                <h2>Stock Distribution by Category</h2>
+                <div class="chart-legend">
+                    <span class="legend-item"><div class="dot cpu"></div> Product Count</span>
+                    <span class="legend-item"><div class="dot memory"></div> Total Stock</span>
+                </div>
+            </div>
+            <div id="resource-usage-chart"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+         fetch('/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                initAnalyticsPageCharts(data);
+            });
+    });
+
+    function initAnalyticsPageCharts(data) {
+        // Low Stock Metric
+        new ApexCharts(document.querySelector("#peak-load-metric-chart"), {
+            chart: { type: 'area', height: 100, sparkline: { enabled: true } },
+            stroke: { curve: 'smooth', width: 2 },
+            series: [{ name: 'Low Stock', data: [12, 14, 10, 15, 13, 11, data.inventory_summary.low_stock_count] }],
+            colors: ['#ef4444'],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.2, opacityTo: 0 } }
+        }).render();
+
+        // Total Products Metric
+        new ApexCharts(document.querySelector("#resp-time-metric-chart"), {
+            chart: { type: 'area', height: 100, sparkline: { enabled: true } },
+            stroke: { curve: 'smooth', width: 2 },
+            series: [{ name: 'Total Products', data: [20, 25, 22, 28, 30, 32, data.inventory_summary.total_products] }],
+            colors: ['#8b5cf6'],
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.2, opacityTo: 0 } }
+        }).render();
+
+        // Category Distribution
+        new ApexCharts(document.querySelector("#resource-usage-chart"), {
+            chart: { type: 'bar', height: 350, stacked: true, toolbar: { show: false } },
+            plotOptions: { bar: { columnWidth: '40%', borderRadius: 4 } },
+            series: [
+                { name: 'Product Count', data: data.category_distribution.counts },
+                { name: 'Total Stock', data: data.category_distribution.stock_levels }
+            ],
+            colors: ['#3b82f6', '#10b981'],
+            xaxis: {
+                categories: data.category_distribution.labels,
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: { show: false },
+            legend: { show: false },
+            grid: { borderColor: 'rgba(255, 255, 255, 0.05)' }
+        }).render();
+
+        // Update Values
+        document.getElementById('low-stock-val').innerText = data.inventory_summary.low_stock_count;
+        document.getElementById('total-prods-val').innerText = data.inventory_summary.total_products;
+    }
+</script>
+{% endblock %}
